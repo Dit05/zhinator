@@ -1,3 +1,4 @@
+// FIXME 7. feladat
 use std::collections::VecDeque;
 
 
@@ -82,6 +83,7 @@ impl<'a> Processor<'a> {
         let mut proc = Processor::new(settings);
 
         proc.process_many(text.chars());
+        proc.know_nothing_but_hunger();
 
         proc.output
     }
@@ -236,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_python() {
+    fn test_python1() {
         let input = "def sum_to(n):\n    pass # TODO#{if(solved)}\n    if n <= 0:\n        return 0\n    else:\n        return n + sum_to(n - 1)\n#{end(solved)}\n# blah blah";
 
         let expected_a = "def sum_to(n):\n    pass # TODO\n    if n <= 0:\n        return 0\n    else:\n        return n + sum_to(n - 1)\n\n# blah blah";
@@ -245,6 +247,78 @@ mod tests {
 
         let expected_b = "def sum_to(n):\n    pass # TODO\n# blah blah";
         let actual_b = Processor::process_text(input, &Settings { active_tags: vec![/* empty */] }).iter().collect::<String>();
+        assert_eq!(expected_b, actual_b);
+    }
+
+    #[test]
+    fn test_python2() {
+        // FIXME (probably something to do with nested tags?)
+        let input = r##"
+# ~ 7. feladat ~
+# Visszaadja, hány darab #{if(A)}páratlan#{end}#{if(B)}páros#{end} szám van a listában.#{if(A)}
+def number_of_odd(list):
+    pass # TODO#{if(solved)}
+    if len(list) == 0:
+        return 0
+    else:
+        if list[0] % 2 == 1:
+            return 1 + number_of_odd(list[1:])
+        else:
+            return number_of_odd(list[1:])
+#{end(solved)}
+
+print('\n' + banner("7.) number_of_odd"))
+test('number_of_odd([])', 0)
+test('number_of_odd([1])', 1)
+test('number_of_odd([2])', 0)
+test('number_of_odd([5, 6, 7])', 2)
+test('number_of_odd([10, 14, 15])', 1)#{end}#{if(B)}
+def number_of_even(list):
+    pass # TODO#{if(solved)}
+    if len(list) == 0:
+        return 0
+    else:
+        if list[0] % 2 == 0:
+            return 1 + number_of_even(list[1:])
+        else:
+            return number_of_even(list[1:])
+#{end(solved)}
+
+print('\n' + banner("7.) number_of_even"))
+test('number_of_even([])', 0)
+test('number_of_even([1])', 0)
+test('number_of_even([2])', 1)
+test('number_of_even([5, 6, 7])', 1)
+test('number_of_even([10, 14, 15])', 2)#{end}"##;
+
+        let expected_a = r##"
+# ~ 7. feladat ~
+# Visszaadja, hány darab páratlan szám van a listában.
+def number_of_odd(list):
+    pass # TODO
+
+print('\n' + banner("7.) number_of_odd"))
+test('number_of_odd([])', 0)
+test('number_of_odd([1])', 1)
+test('number_of_odd([2])', 0)
+test('number_of_odd([5, 6, 7])', 2)
+test('number_of_odd([10, 14, 15])', 1)"##;
+        let actual_a: String = Processor::process_text(input, &Settings { active_tags: vec![ "A".to_string() ] }).iter().collect();
+        assert_eq!(expected_a, actual_a);
+
+        let expected_b = r##"
+# ~ 7. feladat ~
+# Visszaadja, hány darab páros szám van a listában.
+def number_of_even(list):
+    pass # TODO
+
+print('\n' + banner("7.) number_of_even"))
+test('number_of_even([])', 0)
+test('number_of_even([1])', 0)
+test('number_of_even([2])', 1)
+test('number_of_even([5, 6, 7])', 1)
+test('number_of_even([10, 14, 15])', 2)"##;
+        let actual_b: String = Processor::process_text(input, &Settings { active_tags: vec![ "B".to_string() ] }).iter().collect();
         assert_eq!(expected_b, actual_b);
     }
 }
